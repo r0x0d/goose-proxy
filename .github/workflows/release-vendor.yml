@@ -1,0 +1,65 @@
+name: Release vendor wheels
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    name: Build and upload vendor tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve dependencies for Python 3.9 (RHEL 9)
+        run: >
+          uv pip compile pyproject.toml
+          --python-version 3.9
+          -c packaging/constraints-39.txt
+          --no-header --no-annotate
+          -o requirements-39.txt
+
+      - name: Resolve dependencies for Python 3.12 (RHEL 10)
+        run: >
+          uv pip compile pyproject.toml
+          --python-version 3.12
+          --no-header --no-annotate
+          -o requirements-312.txt
+
+      - name: Download wheels for Python 3.9 x86_64
+        run: >
+          pip download --no-deps --dest vendor_wheels --only-binary=:all:
+          --python-version 3.9 --abi cp39 --implementation cp
+          --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64
+          -r requirements-39.txt
+
+      - name: Download wheels for Python 3.12 x86_64
+        run: >
+          pip download --no-deps --dest vendor_wheels --only-binary=:all:
+          --python-version 3.12 --abi cp312 --implementation cp
+          --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64
+          -r requirements-312.txt
+
+      - name: Bundle vendor tarball
+        run: |
+          cp requirements-39.txt requirements-312.txt vendor_wheels/
+          tar czf vendor-wheels.tar.gz vendor_wheels/
+
+      - name: Upload to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release upload "${{ github.ref_name }}" vendor-wheels.tar.gz
+          --clobber
