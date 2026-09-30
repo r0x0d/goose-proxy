@@ -7,7 +7,7 @@ help: ## Show this help message
 
 .PHONY: dev
 dev: ## Run development API
-	uv run --locked fastapi dev src/goose_proxy/app.py
+	XDG_CONFIG_DIRS=data/development/xdg uv run --locked fastapi dev --port 7080 src/goose_proxy/app.py
 
 .PHONY: test
 test: ## Run tests
