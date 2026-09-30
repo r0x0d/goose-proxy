@@ -42,6 +42,9 @@ where = ["src"]
 
 [dependency-groups]
 dev = [
+    # Running `fastapi dev` requires the standard extra.
+    # Alternatively, one could run `uv run --locked goose-proxy` to avoid pulling this extra
+    "fastapi[standard]>=0.128.8",
     "ipdb",
     "ipython",
     {include-group = "docs"},
